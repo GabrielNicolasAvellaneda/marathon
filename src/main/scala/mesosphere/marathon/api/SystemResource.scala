@@ -50,8 +50,9 @@ class SystemResource @Inject() (val config: MarathonConf, cfg: Config)(implicit
     import MediaType._
 
     val v = Variant.mediaTypes(
-      TEXT_WILDCARD_TYPE,
-      APPLICATION_JSON_TYPE
+      TEXT_HTML_TYPE,
+      APPLICATION_JSON_TYPE,
+      TEXT_WILDCARD_TYPE
     ).add.build
 
     Option[Variant](req.selectVariant(v)).map(variant => variant -> variant.getMediaType).collect {
@@ -62,7 +63,7 @@ class SystemResource @Inject() (val config: MarathonConf, cfg: Config)(implicit
         // otherwise we send back plain text
         "pong" -> {
           if (mediaType.isWildcardType() || mediaType.isWildcardSubtype()) {
-            TEXT_PLAIN_TYPE
+            TEXT_PLAIN_TYPE // never return a Content-Type w/ a wildcard
           } else {
             mediaType
           }
