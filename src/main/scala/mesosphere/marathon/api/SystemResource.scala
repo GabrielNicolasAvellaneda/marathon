@@ -50,6 +50,7 @@ class SystemResource @Inject() (val config: MarathonConf, cfg: Config)(implicit
     import MediaType._
 
     val v = Variant.mediaTypes(
+      TEXT_PLAIN_TYPE, // first, in case client accepts */* or text/*
       TEXT_HTML_TYPE,
       APPLICATION_JSON_TYPE,
       TEXT_WILDCARD_TYPE
