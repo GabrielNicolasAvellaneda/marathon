@@ -193,6 +193,8 @@ private class DeploymentActor(
     // TODO: the launch queue is purged in stopRunnable, but it would make sense to do that before calling kill(tasks)
     await(killService.killInstances(launchedInstances, KillReason.DeletingApp))
 
+    logger.debug(s"Killed all remaining tasks: ${launchedInstances.map(_.instanceId)}")
+
     // Note: This is an asynchronous call. We do NOT wait for the run spec to stop. If we do, the DeploymentActorTest
     // fails.
     scheduler.stopRunSpec(runnableSpec)

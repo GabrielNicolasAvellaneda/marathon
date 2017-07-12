@@ -69,7 +69,15 @@ private[termination] object KillAction extends StrictLogging {
 
     // Ephemeral instances are expunged once all tasks are terminal, it's unlikely for this to be true for them.
     // Resident tasks, however, could be in this state if scaled down, or, if kill is attempted between recovery.
-    val allTerminal: Boolean = taskIds.isEmpty
+    //    val allTerminal: Boolean = taskIds.isEmpty
+    val allTerminal: Boolean = knownInstance.fold(false) { instance =>
+      instance.tasksMap.values.forall { task =>
+        task.status.condition.isTerminal || task.status.mesosStatus.fold(true){ status =>
+          status.getState == org.apache.mesos.Protos.TaskState.TASK_KILLED ||
+            status.getState == org.apache.mesos.Protos.TaskState.TASK_FAILED
+        }
+      }
+    }
 
     if (isUnkillable || allTerminal) {
       val msg = if (isUnkillable)
@@ -87,7 +95,10 @@ private[termination] object KillAction extends StrictLogging {
       }
     } else {
       val knownOrNot = if (knownInstance.isDefined) "known" else "unknown"
-      logger.warn("Killing {} {} of instance {}", knownOrNot, taskIds.mkString(","), instanceId)
+      logger.warn(s"Killing $knownOrNot ${taskIds.mkString(",")} of $instanceId with ${maybeCondition.fold("unknown")(_.toString)} condition")
+      logger.debug(s"Task statuses: ${knownInstance.get.tasksMap.values.map(_.status)}")
+      logger.debug(s"Task conditions: ${knownInstance.get.tasksMap.values.map(_.status.condition)}")
+
       KillAction.IssueKillRequest
     }
   }

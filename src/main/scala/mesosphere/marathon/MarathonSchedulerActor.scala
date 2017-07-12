@@ -382,9 +382,12 @@ class SchedulerActions(
 
   @SuppressWarnings(Array("all")) // async/await
   def stopRunSpec(runSpec: RunSpec): Future[Done] = {
+    logger.info(s"Stopping runSpec ${runSpec.id}")
+
     healthCheckManager.removeAllFor(runSpec.id)
 
-    logger.info(s"Stopping runSpec ${runSpec.id}")
+    logger.debug(s"Removed all health checks.")
+
     async {
       val tasks = await(instanceTracker.specInstances(runSpec.id))
 
@@ -395,6 +398,9 @@ class SchedulerActions(
         }
       }
       await(launchQueue.asyncPurge(runSpec.id))
+
+      logger.debug("Purged launch queue")
+
       Done
     }.recover {
       case NonFatal(error) => logger.warn(s"Error in stopping runSpec ${runSpec.id}", error); Done
