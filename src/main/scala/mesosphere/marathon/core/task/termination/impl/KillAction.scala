@@ -76,7 +76,8 @@ private[termination] object KillAction extends StrictLogging {
           // TODO: Check all terminal changes.
           status.getState == org.apache.mesos.Protos.TaskState.TASK_KILLED ||
             status.getState == org.apache.mesos.Protos.TaskState.TASK_FAILED ||
-            status.getState == org.apache.mesos.Protos.TaskState.TASK_FINISHED
+            status.getState == org.apache.mesos.Protos.TaskState.TASK_FINISHED ||
+            status.getState == org.apache.mesos.Protos.TaskState.TASK_LOST
         }
       }
     }

@@ -33,6 +33,7 @@ object InstanceUpdater extends StrictLogging {
   }
 
   private[marathon] def mesosUpdate(instance: Instance, op: MesosUpdate): InstanceUpdateEffect = {
+    logger.debug(s"Update ${instance.instanceId} with $op")
     val now = op.now
     val taskId = Task.Id(op.mesosStatus.getTaskId)
     instance.tasksMap.get(taskId).map { task =>
@@ -117,6 +118,9 @@ object InstanceUpdater extends StrictLogging {
         state = instance.state.copy(condition = Condition.Killed)
       )
       val events = eventsGenerator.events(updatedInstance, task = None, now, previousCondition = Some(instance.state.condition))
+
+      logger.debug(s"Expunge reserved ${instance.instanceId}")
+
       InstanceUpdateEffect.Expunge(instance, events)
     } else {
       InstanceUpdateEffect.Failure("ReservationTimeout can only be applied to a reserved instance")
@@ -130,6 +134,9 @@ object InstanceUpdater extends StrictLogging {
     )
     val events = InstanceChangedEventsGenerator.events(
       updatedInstance, task = None, now, previousCondition = Some(instance.state.condition))
+
+    logger.debug(s"Force expunge ${instance.instanceId}")
+
     InstanceUpdateEffect.Expunge(updatedInstance, events)
   }
 
