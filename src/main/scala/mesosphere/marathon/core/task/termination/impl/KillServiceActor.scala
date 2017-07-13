@@ -31,10 +31,6 @@ import scala.concurrent.{ Future, Promise }
   * number of retries is exceeded, the instance will be expunged from state similar to a
   * lost instance.
   *
-  * For each kill request, a [[KillStreamWatcher]] will be created, which
-  * is supposed to watch the progress and complete a given promise when all watched
-  * instances are reportedly terminal.
-  *
   * For pods started via the default executor, it is sufficient to kill 1 task of the group,
   * which will cause all tasks to be killed
   *
@@ -103,14 +99,27 @@ private[impl] class KillServiceActor(
 
     val instanceIds = instances.map(_.instanceId)
     logger.debug(s"Adding instances $instanceIds to queue")
+
+    val allInstancesFinished = Seq.newBuilder[Future[Done]]
+
     instances.foreach { instance =>
+
+      // This promise is completed once this instance has been killed.
+      val killPromise = Promise[Done]()
+      allInstancesFinished += killPromise.future
+
       // TODO(PODS): do we make sure somewhere that an instance has _at_least_ one task?
       val taskIds: IndexedSeq[Id] = instance.tasksMap.values.withFilter(!_.isTerminal).map(_.taskId)(collection.breakOut)
       instancesToKill.update(
         instance.instanceId,
-        ToKill(instance.instanceId, taskIds, maybeInstance = Some(instance), attempts = 0, promise)
+        ToKill(instance.instanceId, taskIds, maybeInstance = Some(instance), attempts = 0, killPromise)
       )
     }
+
+    // Complete promise once all instances have been killed.
+    val allInstancesKilled: Future[Done] = Future.sequence(allInstancesFinished.result()).map(_ => Done)
+    promise.completeWith(allInstancesKilled)
+
     processKills()
   }
 

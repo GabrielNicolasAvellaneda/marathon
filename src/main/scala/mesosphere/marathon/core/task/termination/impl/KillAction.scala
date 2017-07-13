@@ -72,9 +72,11 @@ private[termination] object KillAction extends StrictLogging {
     //    val allTerminal: Boolean = taskIds.isEmpty
     val allTerminal: Boolean = knownInstance.fold(false) { instance =>
       instance.tasksMap.values.forall { task =>
-        task.status.condition.isTerminal || task.status.mesosStatus.fold(true){ status =>
+        task.status.condition.isTerminal || task.status.mesosStatus.fold(false){ status =>
+          // TODO: Check all terminal changes.
           status.getState == org.apache.mesos.Protos.TaskState.TASK_KILLED ||
-            status.getState == org.apache.mesos.Protos.TaskState.TASK_FAILED
+            status.getState == org.apache.mesos.Protos.TaskState.TASK_FAILED ||
+            status.getState == org.apache.mesos.Protos.TaskState.TASK_FINISHED
         }
       }
     }
@@ -96,8 +98,10 @@ private[termination] object KillAction extends StrictLogging {
     } else {
       val knownOrNot = if (knownInstance.isDefined) "known" else "unknown"
       logger.warn(s"Killing $knownOrNot ${taskIds.mkString(",")} of $instanceId with ${maybeCondition.fold("unknown")(_.toString)} condition")
-      logger.debug(s"Task statuses: ${knownInstance.get.tasksMap.values.map(_.status)}")
-      logger.debug(s"Task conditions: ${knownInstance.get.tasksMap.values.map(_.status.condition)}")
+      knownInstance.foreach { instance =>
+        logger.debug(s"Task statuses: ${instance.tasksMap.values.map(_.status)}")
+        logger.debug(s"Task conditions: ${instance.tasksMap.values.map(_.status.condition)}")
+      }
 
       KillAction.IssueKillRequest
     }

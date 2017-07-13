@@ -30,7 +30,7 @@ import mesosphere.util.PortAllocator
 import org.apache.commons.io.FileUtils
 import org.scalatest.concurrent.{ Eventually, ScalaFutures }
 import org.scalatest.exceptions.TestFailedDueToTimeoutException
-import org.scalatest.time.{ Milliseconds, Minutes, Second, Span }
+import org.scalatest.time.{ Milliseconds, Minutes, Second, Seconds, Span }
 import org.scalatest.{ BeforeAndAfterAll, Suite }
 import play.api.libs.json.{ JsObject, Json }
 
@@ -463,7 +463,8 @@ trait MarathonTest extends HealthCheckEndpoint with StrictLogging with ScalaFutu
         logger.info(s"""Waiting for blank slate Mesos...\n "used_resources": "$usedResources"\n"reserved_resources": "$reservedResources"""")
       }
       occupiedAgents.isEmpty
-    }(WaitTestSupport.PatienceConfig(timeout = Span(5, Minutes), interval = Span(1, Second)))
+    }(WaitTestSupport.PatienceConfig(timeout = Span(30, Seconds), interval = Span(1, Second)))
+    //}(WaitTestSupport.PatienceConfig(timeout = Span(5, Minutes), interval = Span(1, Second)))
 
     val apps = marathon.listAppsInBaseGroup
     require(apps.value.isEmpty, s"apps weren't empty: ${apps.entityPrettyJsonString}")
