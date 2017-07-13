@@ -24,6 +24,11 @@ import mesosphere.marathon.integration.setup.RestResult
 import scala.concurrent.ExecutionContextExecutor
 
 /**
+  * Tests which fail due to a known issue can be tagged. They are executed but are marked as canceled when they fail.
+  */
+case class KnownIssue(jira: String) extends Tag(s"mesosphere.marathon.KnownIssue:$jira")
+
+/**
   * All integration tests should be marked with this tag.
   * Integration tests need a special set up and can take a long time.
   * So it is not desirable, that these kind of tests run every time all the unit tests run.
@@ -39,6 +44,25 @@ object IntegrationTag extends Tag("mesosphere.marathon.IntegrationTest")
   * }}}
   */
 case class WhenEnvSet(envVarName: String, default: String = "false") extends Tag(if (sys.env.getOrElse(envVarName, default) == "true") "" else classOf[Ignore].getName)
+
+trait CancelFailedTestWithKnownIssue extends TestSuite {
+
+  val containsJira = """mesosphere\.marathon\.KnownIssue\:(\S+)""".r
+
+  def isKnownIssue(testData: TestData): Option[String] = testData.tags.collectFirst{ case containsJira(jira) => jira }
+
+  def markAsCanceledOnFailure(jira: String)(blk: => Outcome): Outcome =
+    blk match {
+      case Failed(ex) => Canceled(s"Known issue $jira: ${ex.getMessage}", ex)
+      case other => other
+    }
+
+  override def withFixture(test: NoArgTest): Outcome = isKnownIssue(test) match {
+    case Some(jira) => markAsCanceledOnFailure(jira) { super.withFixture(test) }
+    case None => super.withFixture(test)
+  }
+
+}
 
 trait ValidationTestLike extends Validation {
   this: Assertions =>
@@ -96,7 +120,8 @@ trait UnitTestLike extends WordSpecLike
     with StrictLogging
     with Mockito
     with ExitDisabledTest
-    with TimeLimitedTests {
+    with TimeLimitedTests
+    with CancelFailedTestWithKnownIssue {
 
   override val timeLimit = Span(1, Minute)
 
