@@ -93,5 +93,5 @@ def runWithTimeout(timeout: FiniteDuration)(commands: Seq[String]): Unit = {
  * @return True if build is on master build.
  */
 def isMasterBuild(): Boolean = {
-  sys.env("GIT_BRANCH") == "origin/master"
+  sys.env("GIT_BRANCH") == "origin/master" || sys.env("GIT_BRANCH") == "origin/karsten/upgrade-dcos"
 }
