@@ -72,13 +72,7 @@ private[termination] object KillAction extends StrictLogging {
     //    val allTerminal: Boolean = taskIds.isEmpty
     val allTerminal: Boolean = knownInstance.fold(false) { instance =>
       instance.tasksMap.values.forall { task =>
-        task.status.condition.isTerminal || task.status.mesosStatus.fold(false){ status =>
-          // TODO: Check all terminal changes.
-          status.getState == org.apache.mesos.Protos.TaskState.TASK_KILLED ||
-            status.getState == org.apache.mesos.Protos.TaskState.TASK_FAILED ||
-            status.getState == org.apache.mesos.Protos.TaskState.TASK_FINISHED ||
-            status.getState == org.apache.mesos.Protos.TaskState.TASK_LOST
-        }
+        task.status.condition.isTerminal || task.status.mesosStatus.exists(taskStatus => Task.Terminated.isTerminated(taskStatus.getState))
       }
     }
 
